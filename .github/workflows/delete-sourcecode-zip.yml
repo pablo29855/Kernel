@@ -1,0 +1,53 @@
+# Copyright (C) 2025 chickendrop89
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# Remove the "xxx source code.tar.gz" artifacts from sourceforge 
+# after a release as i noticed some people downloading it accidentally
+# and complaining that the kernel zip can not be flashed.
+
+name: SourceForge Cleanup
+
+on:
+  release:
+    types: [published, edited]
+
+jobs:
+  delete_source_code_artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete source code artifacts from SourceForge
+        env:
+          SF_API_COOKIE: ${{ secrets.SF_API_COOKIE }}
+          SF_PROJECT_NAME: ${{ secrets.SF_PROJECT_NAME }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          SF_RELEASE_PATH: "files"
+        run: |
+          sleep 120
+
+          echo "Attempting to delete 'source code' artifacts for release ${{ env.RELEASE_TAG }}..."
+          BASE_URL="https://sourceforge.net/projects/${{ env.SF_PROJECT_NAME }}/${{ env.SF_RELEASE_PATH }}/${{ env.RELEASE_TAG }}"
+
+          SOURCE_TAR_GZ_NAME="chickernel_%20${{ env.RELEASE_TAG }}%20release%20source%20code.tar.gz"
+          SOURCE_ZIP_NAME="chickernel_%20${{ env.RELEASE_TAG }}%20release%20source%20code.zip"
+
+          echo "Deleting file: ${SOURCE_TAR_GZ_NAME}"
+          curl -s -H "Accept: application/json" -X DELETE \
+               -b "sourceforge=${{ env.SF_API_COOKIE }}" \
+               "${BASE_URL}/${SOURCE_TAR_GZ_NAME}" || true
+          
+          echo "Deleting file: ${SOURCE_ZIP_NAME}"
+          curl -s -H "Accept: application/json" -X DELETE \
+               -b "sourceforge=${{ env.SF_API_COOKIE }}" \
+               "${BASE_URL}/${SOURCE_ZIP_NAME}" || true
+
+          echo
+          echo "Delete request sent. Source code artifacts should be removed from SourceForge."
